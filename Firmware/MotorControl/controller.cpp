@@ -26,9 +26,7 @@ void Controller::set_error(Error_t error) {
 //--------------------------------
 
 void Controller::input_pos_updated() {
-    if (config_.input_mode == INPUT_MODE_TRAP_TRAJ) {
-        move_to_pos(input_pos_);
-    }
+    input_pos_updated_ = true;
 }
 
 void Controller::move_to_pos(float goal_point) {
@@ -38,7 +36,6 @@ void Controller::move_to_pos(float goal_point) {
                                  axis_->trap_.config_.decel_limit);
     traj_start_loop_count_ = axis_->loop_counter_;
     trajectory_done_ = false;
-    goal_point_ = goal_point;
 }
 
 void Controller::move_incremental(float displacement, bool from_input_pos = true){
@@ -117,6 +114,14 @@ void Controller::update_filter_gains() {
     input_filter_kp_ = 0.25f * (input_filter_ki_ * input_filter_ki_); // Critically damped
 }
 
+namespace {
+float limitVel(const float vel_limit, const float vel_estimate, const float vel_gain, const float Iq) {
+    float Imax = (vel_limit - vel_estimate) * vel_gain;
+    float Imin = (-vel_limit - vel_estimate) * vel_gain;
+    return std::clamp(Iq, Imin, Imax);
+}
+}  // namespace
+
 bool Controller::update(float pos_estimate, float vel_estimate, float* current_setpoint_output) {
     // Only runs if config_.anticogging.calib_anticogging is true; non-blocking
     anticogging_calibration(pos_estimate, vel_estimate);
@@ -133,14 +138,10 @@ bool Controller::update(float pos_estimate, float vel_estimate, float* current_s
             current_setpoint_ = input_current_;
         } break;
         case INPUT_MODE_VEL_RAMP: {
-            float max_step_size = current_meas_period * config_.vel_ramp_rate;
+            float max_step_size = std::abs(current_meas_period * config_.vel_ramp_rate);
             float full_step = input_vel_ - vel_setpoint_;
-            float step;
-            if (fabsf(full_step) > max_step_size) {
-                step = std::copysignf(max_step_size, full_step);
-            } else {
-                step = full_step;
-            }
+            float step = std::clamp(full_step, -max_step_size, max_step_size);
+
             vel_setpoint_ += step;
             current_setpoint_ = step / current_meas_period * config_.inertia;
         } break;
@@ -157,6 +158,10 @@ bool Controller::update(float pos_estimate, float vel_estimate, float* current_s
         //     // NOT YET IMPLEMENTED
         // } break;
         case INPUT_MODE_TRAP_TRAJ: {
+            if(input_pos_updated_){
+                move_to_pos(input_pos_);
+                input_pos_updated_ = false;
+            }
             // Avoid updating uninitialized trajectory
             if (trajectory_done_)
                 break;
@@ -169,6 +174,7 @@ bool Controller::update(float pos_estimate, float vel_estimate, float* current_s
                 pos_setpoint_ = input_pos_;
                 vel_setpoint_ = 0.0f;
                 current_setpoint_ = 0.0f;
+                trajectory_done_ = true;
             } else {
                 TrapezoidalTrajectory::Step_t traj_step = axis_->trap_.eval(t);
                 pos_setpoint_ = traj_step.Y;
@@ -181,6 +187,7 @@ bool Controller::update(float pos_estimate, float vel_estimate, float* current_s
             set_error(ERROR_INVALID_INPUT_MODE);
             return false;
         }
+        
     }
 
     // Position control
@@ -215,7 +222,7 @@ bool Controller::update(float pos_estimate, float vel_estimate, float* current_s
     if (vel_des < -vel_lim) vel_des = -vel_lim;
 
     // Check for overspeed fault (done in this module (controller) for cohesion with vel_lim)
-    if (config_.vel_limit_tolerance > 0.0f) { // 0.0f to disable
+    if (config_.vel_limit_tolerance > 0.0f) {  // 0.0f to disable
         if (fabsf(vel_estimate) > config_.vel_limit_tolerance * vel_lim) {
             set_error(ERROR_OVERSPEED);
             return false;
@@ -239,6 +246,11 @@ bool Controller::update(float pos_estimate, float vel_estimate, float* current_s
 
     // Velocity integral action before limiting
     Iq += vel_integrator_current_;
+
+    // Velocity limiting in current mode
+    if (config_.control_mode < CTRL_MODE_VELOCITY_CONTROL && config_.vel_limit > 0.0f) {
+        Iq = limitVel(config_.vel_limit, vel_estimate, config_.vel_gain, Iq);
+    }
 
     // Current limiting
     bool limited = false;
