@@ -108,8 +108,13 @@ public:
     bool abs_spi_start_transaction();
     void abs_spi_cb();
     void abs_spi_cs_pin_init();
-    uint16_t abs_spi_dma_tx_[2] = {0xFFFF, 0x0000};
-    uint16_t abs_spi_dma_rx_[2];
+    uint16_t abs_spi_dma_tx_[3] = {0xFFFF, 0x0000, 0x0000};
+    uint16_t abs_spi_dma_rx_[3];
+
+    bool SPI_encoder_ready = false; //AEAT flag
+    bool AEAT_MHI = false; //AEAT flag
+    bool AEAT_MHO = false; //AEAT flag
+
     bool abs_spi_pos_updated_ = false;
     bool abs_spi_pos_init_once_ = false;
     GPIO_TypeDef* abs_spi_cs_port_;
@@ -138,7 +143,9 @@ public:
             make_protocol_ro_property("calib_scan_response", &calib_scan_response_),
             make_protocol_property("pos_abs", &pos_abs_),
             make_protocol_ro_property("spi_error_rate", &spi_error_rate_),
-
+            make_protocol_ro_property("AEAT_SPI_encoder_ready", &SPI_encoder_ready),
+            make_protocol_ro_property("AEAT_MHI", &AEAT_MHI),
+            make_protocol_ro_property("AEAT_MHO", &AEAT_MHO),
             make_protocol_object("config",
                 make_protocol_property("mode", &config_.mode,
                     [](void* ctx) { static_cast<Encoder*>(ctx)->abs_spi_init(); }, this),
