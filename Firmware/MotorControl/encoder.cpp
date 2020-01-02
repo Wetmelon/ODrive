@@ -471,9 +471,7 @@ bool Encoder::update() {
             abs_spi_pos_updated_ = false;
             delta_enc = pos_abs_ - count_in_cpr_;
             delta_enc = mod(delta_enc, config_.cpr);
-            if (delta_enc > config_.cpr/2) {
-                delta_enc -= config_.cpr;
-            }
+
             if (!abs_spi_pos_init_once_ && delta_enc != 0) {
                 abs_spi_pos_init_once_ = true;
             }
