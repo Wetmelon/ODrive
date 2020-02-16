@@ -293,7 +293,23 @@ bool Axis::run_closed_loop_control_loop() {
             if (min_endstop_.config_.enabled && min_endstop_.getEndstopState()) {
                 return error_ |= ERROR_MIN_ENDSTOP_PRESSED, false;
             } else if (max_endstop_.config_.enabled && max_endstop_.getEndstopState()) {
-                return error_ |= ERROR_MAX_ENDSTOP_PRESSED, false;
+                //return error_ |= ERROR_MAX_ENDSTOP_PRESSED, false; // KMART TODO: Add Logic to stop movement instead of error (e.g. pos_setpoint_ = axis_->encoder_.pos_cpr_)
+                if (max_endstop_.config_.behaviour == ENDSTOP_BEHAVIOUR_DRIVE_UP)
+                {
+                    if (controller_.EndswitchState == controller_.ES_STATE_MOVE_UP)
+                    {
+                        controller_.EndswitchState = controller_.ES_STATE_IDLE;
+                        controller_.pos_setpoint_ = encoder_.pos_estimate_;
+                    }
+                }
+                else
+                {
+                    return error_ |= ERROR_MAX_ENDSTOP_PRESSED, false;
+                }
+            }
+            else if ((abs(controller_.pos_setpoint_ - encoder_.pos_estimate_) < 50) && (controller_.EndswitchState == controller_.ES_STATE_MOVE_UP)) 
+            { // limit of storage reached -> empty
+                controller_.EndswitchState = controller_.ES_STATE_LIMIT_REACHED;
             }
         }
         return true;

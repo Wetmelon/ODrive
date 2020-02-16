@@ -6,12 +6,12 @@
 #endif
 
     
-enum HomingState_t {
-    HOMING_STATE_UNDEFINED = 0,
-    HOMING_STATE_IDLE = 1,
-    HOMING_STATE_HOMING = 2,
-    HOMING_STATE_MOVE_TO_ZERO = 3
-};
+    enum HomingState_t {
+        HOMING_STATE_UNDEFINED = 0,
+        HOMING_STATE_IDLE = 1,
+        HOMING_STATE_HOMING = 2,
+        HOMING_STATE_MOVE_TO_ZERO = 3
+    };
 
 class Axis {
 public:

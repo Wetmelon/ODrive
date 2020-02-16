@@ -20,9 +20,10 @@
 /* Global variables ----------------------------------------------------------*/
 /* Private constant data -----------------------------------------------------*/
 
-#define MAX_LINE_LENGTH 256
+#define MAX_LINE_LENGTH 255
 #define TO_STR_INNER(s) #s
 #define TO_STR(s) TO_STR_INNER(s)
+//#define UartAddress '8'
 
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -32,6 +33,13 @@
 template<typename ... TArgs>
 void respond(StreamSink& output, bool include_checksum, const char * fmt, TArgs&& ... args) {
     char response[64];
+    //HAL_GPIO_WritePin(GPIO_3_GPIO_Port, GPIO_3_Pin, GPIO_PIN_SET);
+
+    uint8_t out_addr = board_config.board_address + 48;
+    output.process_bytes((const uint8_t*)"$", 1, nullptr);
+    output.process_bytes((uint8_t*)&out_addr, 1, nullptr);
+    
+
     size_t len = snprintf(response, sizeof(response), fmt, std::forward<TArgs>(args)...);
     output.process_bytes((uint8_t*)response, len, nullptr); // TODO: use process_all instead
     if (include_checksum) {
@@ -42,6 +50,7 @@ void respond(StreamSink& output, bool include_checksum, const char * fmt, TArgs&
         output.process_bytes((uint8_t*)response, len, nullptr);
     }
     output.process_bytes((const uint8_t*)"\r\n", 2, nullptr);
+    //HAL_GPIO_WritePin(GPIO_3_GPIO_Port, GPIO_3_Pin, GPIO_PIN_RESET);
 }
 
 
@@ -50,6 +59,11 @@ void respond(StreamSink& output, bool include_checksum, const char * fmt, TArgs&
 // @param len size of the buffer
 void ASCII_protocol_process_line(const uint8_t* buffer, size_t len, StreamSink& response_channel) {
     static_assert(sizeof(char) == sizeof(uint8_t));
+
+    if (buffer[0] != '#') return; // SOF char not received
+    //if (buffer[1] != UartAddress) return; // Address mismatch (not for us)
+    if (buffer[1] != (board_config.board_address + 48)) return; // Address mismatch (not for us)
+
 
     // scan line to find beginning of checksum and prune comment
     uint8_t checksum = 0;
@@ -70,8 +84,9 @@ void ASCII_protocol_process_line(const uint8_t* buffer, size_t len, StreamSink& 
 
     // copy everything into a local buffer so we can insert null-termination
     char cmd[MAX_LINE_LENGTH + 1];
+    len = len -2;
     if (len > MAX_LINE_LENGTH) len = MAX_LINE_LENGTH;
-    memcpy(cmd, buffer, len);
+    memcpy(cmd, buffer+2, len);
 
     // optional checksum validation
     bool use_checksum = (checksum_start < len);
@@ -204,6 +219,7 @@ void ASCII_protocol_process_line(const uint8_t* buffer, size_t len, StreamSink& 
         respond(response_channel, use_checksum, "Hardware version: %d.%d-%dV", HW_VERSION_MAJOR, HW_VERSION_MINOR, HW_VERSION_VOLTAGE);
         respond(response_channel, use_checksum, "Firmware version: %d.%d.%d", FW_VERSION_MAJOR, FW_VERSION_MINOR, FW_VERSION_REVISION);
         respond(response_channel, use_checksum, "Serial number: %s", serial_number_str);
+        respond(response_channel, use_checksum, "Board Address: %d", board_config.board_address);
 
     } else if (cmd[0] == 's'){ // System
         if(cmd[1] == 's') { // Save config
@@ -214,8 +230,40 @@ void ASCII_protocol_process_line(const uint8_t* buffer, size_t len, StreamSink& 
             NVIC_SystemReset();
         }
 
-    } else if (cmd[0] == 'r') { // read property
-        char name[MAX_LINE_LENGTH];
+    } else if (cmd[0] == 'x') // custom
+    {
+        if(cmd[1] == 's') // status
+        {
+            unsigned motor_number;
+            int numscan = sscanf(cmd, "xs %u", &motor_number);
+            if (numscan < 1) {
+                respond(response_channel, use_checksum, "invalid command format");
+            } else if (motor_number >= AXIS_COUNT) {
+                respond(response_channel, use_checksum, "invalid motor %u", motor_number);
+            } else {
+                Axis* axis = axes[motor_number];
+                respond(response_channel, use_checksum, "%u", axis->current_state_);
+                axis->watchdog_feed();
+            }   
+        } 
+        if(cmd[1] == 'u') // drive up 
+        {
+            unsigned motor_number;
+            int numscan = sscanf(cmd, "xu %u", &motor_number);
+            if (numscan < 1) {
+                respond(response_channel, use_checksum, "invalid command format");
+            } else if (motor_number >= AXIS_COUNT) {
+                respond(response_channel, use_checksum, "invalid motor %u", motor_number);
+            } else {
+                Axis* axis = axes[motor_number];
+                axis->controller_.drive_up();
+                axis->watchdog_feed();
+            }   
+        } 
+    } 
+
+    else if (cmd[0] == 'r') { // read property
+        char name[MAX_LINE_LENGTH+1];
         int numscan = sscanf(cmd, "r %" TO_STR(MAX_LINE_LENGTH) "s", name);
         if (numscan < 1) {
             respond(response_channel, use_checksum, "invalid command format");
@@ -234,8 +282,8 @@ void ASCII_protocol_process_line(const uint8_t* buffer, size_t len, StreamSink& 
         }
 
     } else if (cmd[0] == 'w') { // write property
-        char name[MAX_LINE_LENGTH];
-        char value[MAX_LINE_LENGTH];
+        char name[MAX_LINE_LENGTH+1];
+        char value[MAX_LINE_LENGTH+1];
         int numscan = sscanf(cmd, "w %" TO_STR(MAX_LINE_LENGTH) "s %" TO_STR(MAX_LINE_LENGTH) "s", name, value);
         if (numscan < 1) {
             respond(response_channel, use_checksum, "invalid command format");

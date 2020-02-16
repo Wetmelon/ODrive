@@ -3,12 +3,18 @@
 
 class Endstop {
    public:
+
+    //#define ENDSTOP_BEHAVIOUR_UNDEFINED 0
+    #define ENDSTOP_BEHAVIOUR_DRIVE_UP 1
+    //#define ENDSTOP_BEHAVIOUR_DOERROR 2
+
     struct Config_t {
         uint16_t gpio_num;
         bool enabled = false;
         int32_t offset = 0;
         bool is_active_high = false;
         float debounce_ms = 100.0f;
+        uint8_t behaviour = 0;
     };
 
     Endstop(Endstop::Config_t& config);
@@ -34,7 +40,9 @@ class Endstop {
                                                         [](void* ctx) { static_cast<Endstop*>(ctx)->update_endstop_config(); }, this),
                                  make_protocol_property("offset", &config_.offset),
                                  make_protocol_property("is_active_high", &config_.is_active_high),
-                                 make_protocol_property("debounce_ms", &config_.debounce_ms)));
+                                 make_protocol_property("debounce_ms", &config_.debounce_ms),
+                                 make_protocol_property("behaviour", &config_.behaviour)
+                                 ));
     }
 
    private:

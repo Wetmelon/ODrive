@@ -37,6 +37,9 @@ public:
                 return -1;
             // transmit chunk
             memcpy(tx_buf_, buffer, chunk);
+            
+            HAL_GPIO_WritePin(GPIO_3_GPIO_Port, GPIO_3_Pin, GPIO_PIN_SET);
+
             if (HAL_UART_Transmit_DMA(&huart4, tx_buf_, chunk) != HAL_OK)
                 return -1;
             buffer += chunk;
@@ -104,4 +107,5 @@ void start_uart_server() {
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
     osSemaphoreRelease(sem_uart_dma);
+    HAL_GPIO_WritePin(GPIO_3_GPIO_Port, GPIO_3_Pin, GPIO_PIN_RESET);
 }
