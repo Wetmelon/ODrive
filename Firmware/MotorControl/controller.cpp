@@ -86,6 +86,13 @@ bool Controller::home_axis() {
     return true;
 }
 
+bool Controller::drive_up() 
+{
+    EndswitchState = ES_STATE_MOVE_UP;
+    pos_setpoint_ = -2800000;
+    return true;
+}
+
 /*
  * This anti-cogging implementation iterates through each encoder position,
  * waits for zero velocity & position error,
