@@ -882,6 +882,8 @@ HAL_StatusTypeDef HAL_UART_Transmit_DMA(UART_HandleTypeDef *huart, uint8_t *pDat
       return HAL_ERROR;
     }
 
+    
+
     /* Process Locked */
     __HAL_LOCK(huart);
 
@@ -1654,6 +1656,7 @@ void HAL_UART_IRQHandler(UART_HandleTypeDef *huart)
   /* NOTE: This function Should not be modified, when the callback is needed,
            the HAL_UART_TxCpltCallback could be implemented in the user file
    */ 
+
 }
 
 /**
@@ -1874,6 +1877,8 @@ HAL_StatusTypeDef HAL_HalfDuplex_EnableTransmitter(UART_HandleTypeDef *huart)
 
   /* Process Locked */
   __HAL_LOCK(huart);
+
+
   
   huart->gState = HAL_UART_STATE_BUSY;
 
@@ -1909,6 +1914,8 @@ HAL_StatusTypeDef HAL_HalfDuplex_EnableReceiver(UART_HandleTypeDef *huart)
 
   /* Process Locked */
   __HAL_LOCK(huart);
+
+
   
   huart->gState = HAL_UART_STATE_BUSY;
 
@@ -2142,6 +2149,10 @@ static void UART_EndTxTransfer(UART_HandleTypeDef *huart)
 {
   /* Disable TXEIE and TCIE interrupts */
   CLEAR_BIT(huart->Instance->CR1, (USART_CR1_TXEIE | USART_CR1_TCIE));
+
+  
+  //TODO KMART: Move to user file
+//  HAL_GPIO_WritePin(GPIO_3_GPIO_Port, GPIO_3_Pin, GPIO_PIN_RESET);
 
   /* At end of Tx process, restore huart->gState to Ready */
   huart->gState = HAL_UART_STATE_READY;

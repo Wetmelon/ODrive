@@ -45,6 +45,13 @@ public:
     // Trajectory-Planned control
     void move_to_pos(float goal_point);
     void move_incremental(float displacement, bool from_goal_point);
+<<<<<<< Updated upstream
+=======
+
+    bool home_axis();
+
+    bool drive_up();
+>>>>>>> Stashed changes
     
     // TODO: make this more similar to other calibration loops
     void start_anticogging_calibration();
@@ -92,6 +99,15 @@ public:
 
     float goal_point_ = 0.0f;
 
+    enum MoveToEndswitchState_t{
+        ES_STATE_UNDEFINED = 0,
+        ES_STATE_IDLE = 1,
+        ES_STATE_MOVE_UP = 2,
+        ES_STATE_LIMIT_REACHED = 3
+    };
+
+    MoveToEndswitchState_t EndswitchState = ES_STATE_IDLE;
+
     // Communication protocol definitions
     auto make_protocol_definitions() {
         return make_protocol_member_list(
@@ -102,6 +118,7 @@ public:
             make_protocol_property("current_setpoint", &current_setpoint_),
             make_protocol_property("vel_ramp_target", &vel_ramp_target_),
             make_protocol_property("vel_ramp_enable", &vel_ramp_enable_),
+            make_protocol_property("move_to_endswitch_max", &EndswitchState),
             make_protocol_object("config",
                 make_protocol_property("control_mode", &config_.control_mode),
                 make_protocol_property("pos_gain", &config_.pos_gain),
@@ -120,7 +137,13 @@ public:
                                    "current_setpoint"),
             make_protocol_function("move_to_pos", *this, &Controller::move_to_pos, "pos_setpoint"),
             make_protocol_function("move_incremental", *this, &Controller::move_incremental, "displacement", "from_goal_point"),
+<<<<<<< Updated upstream
             make_protocol_function("start_anticogging_calibration", *this, &Controller::start_anticogging_calibration)
+=======
+            make_protocol_function("start_anticogging_calibration", *this, &Controller::start_anticogging_calibration),
+            make_protocol_function("home_axis", *this, &Controller::home_axis),
+            make_protocol_function("drive_up", *this, &Controller::drive_up)
+>>>>>>> Stashed changes
         );
     }
 };

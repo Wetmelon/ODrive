@@ -30,6 +30,12 @@ extern "C" {
 #error "unknown board version"
 #endif
 
+#define ADDR_UNDEFINED 0
+#define ADDR_SLED_HANDLER 1
+#define ADDR_STORAGE1 2
+#define ADDR_STORAGE2 3
+#define ADDR_ROTATIONAL 4
+
 //default timeout waiting for phase measurement signals
 #define PH_CURRENT_MEAS_TIMEOUT 2 // [ms]
 
@@ -68,6 +74,7 @@ struct PWMMapping_t {
 
 // @brief general user configurable board configuration
 struct BoardConfig_t {
+    uint8_t board_address = 0;
     bool enable_uart = true;
     bool enable_i2c_instead_of_can = false;
     bool enable_ascii_protocol_on_usb = true;

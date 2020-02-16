@@ -299,6 +299,45 @@ bool Axis::run_closed_loop_control_loop() {
         float phase_vel = 2*M_PI * encoder_.vel_estimate_ / (float)encoder_.config_.cpr * motor_.config_.pole_pairs;
         if (!motor_.update(current_setpoint, encoder_.phase_, phase_vel))
             return false; // set_error should update axis.error_
+<<<<<<< Updated upstream
+=======
+
+        // Handle the homing case
+        if (homing_state_ == HOMING_STATE_HOMING) {
+            if (min_endstop_.getEndstopState()) {
+                encoder_.set_linear_count(min_endstop_.config_.offset);
+                controller_.set_pos_setpoint(0.0f, 0.0f, 0.0f);
+                homing_state_ = HOMING_STATE_MOVE_TO_ZERO;
+            }
+        } else if (homing_state_ == HOMING_STATE_MOVE_TO_ZERO) {
+            if(!min_endstop_.getEndstopState()){
+                homing_state_ = HOMING_STATE_IDLE;
+            }
+        } else {
+            // Check for endstop presses
+            if (min_endstop_.config_.enabled && min_endstop_.getEndstopState()) {
+                return error_ |= ERROR_MIN_ENDSTOP_PRESSED, false;
+            } else if (max_endstop_.config_.enabled && max_endstop_.getEndstopState()) {
+                //return error_ |= ERROR_MAX_ENDSTOP_PRESSED, false; // KMART TODO: Add Logic to stop movement instead of error (e.g. pos_setpoint_ = axis_->encoder_.pos_cpr_)
+                if (max_endstop_.config_.behaviour == ENDSTOP_BEHAVIOUR_DRIVE_UP)
+                {
+                    if (controller_.EndswitchState == controller_.ES_STATE_MOVE_UP)
+                    {
+                        controller_.EndswitchState = controller_.ES_STATE_IDLE;
+                        controller_.pos_setpoint_ = encoder_.pos_estimate_;
+                    }
+                }
+                else
+                {
+                    return error_ |= ERROR_MAX_ENDSTOP_PRESSED, false;
+                }
+            }
+            else if ((abs(controller_.pos_setpoint_ - encoder_.pos_estimate_) < 50) && (controller_.EndswitchState == controller_.ES_STATE_MOVE_UP)) 
+            { // limit of storage reached -> empty
+                controller_.EndswitchState = controller_.ES_STATE_LIMIT_REACHED;
+            }
+        }
+>>>>>>> Stashed changes
         return true;
     });
     set_step_dir_active(false);

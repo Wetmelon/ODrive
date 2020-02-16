@@ -73,7 +73,7 @@ constexpr uint16_t TX_BUF_SIZE = 32; // does not work with 64 for some reason
 constexpr uint16_t RX_BUF_SIZE = 128; // larger values than 128 have currently no effect because of protocol limitations
 
 // Maximum time we allocate for processing and responding to a request
-constexpr uint32_t PROTOCOL_SERVER_TIMEOUT_MS = 10;
+constexpr uint32_t PROTOCOL_SERVER_TIMEOUT_MS = 20;
 
 
 typedef struct {
