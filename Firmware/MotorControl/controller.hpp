@@ -97,6 +97,15 @@ public:
 
     float goal_point_ = 0.0f;
 
+    enum MoveToEndswitchState_t{
+        ES_STATE_UNDEFINED = 0,
+        ES_STATE_IDLE = 1,
+        ES_STATE_MOVE_UP = 2,
+        ES_STATE_LIMIT_REACHED = 3
+    };
+
+    MoveToEndswitchState_t EndswitchState = ES_STATE_IDLE;
+    
     // Communication protocol definitions
     auto make_protocol_definitions() {
         return make_protocol_member_list(
