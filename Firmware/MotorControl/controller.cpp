@@ -74,6 +74,7 @@ void Controller::start_anticogging_calibration() {
     }
 }
 
+
 // Slowly drive in the negative direction at homing_speed until the min endstop is pressed
 // When pressed, set the linear count to the offset (default 0), and then
 bool Controller::home_axis() {

@@ -74,6 +74,8 @@ void MX_UART4_Init(void)
   huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart4.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(&huart4) != HAL_OK)
+  // KMART: Changed to Half Duplex
+  //if (HAL_HalfDuplex_Init(&huart4) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
