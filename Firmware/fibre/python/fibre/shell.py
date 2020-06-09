@@ -2,6 +2,7 @@
 import sys
 import platform
 import threading
+import asyncio
 import fibre
 
 def did_discover_device(device,
@@ -101,12 +102,12 @@ def launch_shell(args,
         interact = lambda: console.interact(banner='')
 
     # install hook to hide ChannelBrokenException
-    console.runcode('import sys')
-    console.runcode('superexcepthook = sys.excepthook')
-    console.runcode('def newexcepthook(ex_class,ex,trace):\n'
+    asyncio.run(console.runcode('import sys'))
+    asyncio.run(console.runcode('superexcepthook = sys.excepthook'))
+    asyncio.run(console.runcode('def newexcepthook(ex_class,ex,trace):\n'
                     '  if ex_class.__module__ + "." + ex_class.__name__ != "fibre.ChannelBrokenException":\n'
-                    '    superexcepthook(ex_class,ex,trace)')
-    console.runcode('sys.excepthook=newexcepthook')
+                    '    superexcepthook(ex_class,ex,trace)'))
+    asyncio.run(console.runcode('sys.excepthook=newexcepthook'))
 
 
     # Launch shell
