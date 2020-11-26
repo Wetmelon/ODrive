@@ -33,6 +33,11 @@ public:
         float vel_ramp_rate = 10000.0f;  // [(counts/s) / s]
         bool setpoints_in_cpr = false;
         float homing_speed = 2000.0f;   // [counts/s]
+        bool HomingBothDirections = false;
+        float HomingFWD = 0;
+        float HomingREV = 0;
+        bool Homing_Endswitch_Released = false;
+        float FoundPosition = 0;
     };
 
     explicit Controller(Config_t& config);
@@ -49,6 +54,8 @@ public:
 
 
     bool home_axis();
+
+    bool find_position();
 
     bool drive_up();
 
@@ -128,7 +135,11 @@ public:
                 make_protocol_property("vel_limit_tolerance", &config_.vel_limit_tolerance),
                 make_protocol_property("vel_ramp_rate", &config_.vel_ramp_rate),
                 make_protocol_property("setpoints_in_cpr", &config_.setpoints_in_cpr),
-                make_protocol_property("homing_speed", &config_.homing_speed)
+                make_protocol_property("homing_speed", &config_.homing_speed),
+                make_protocol_property("HomingBothDirections", &config_.HomingBothDirections),
+                make_protocol_property("HomingFWD", &config_.HomingFWD),
+                make_protocol_property("HomingREV", &config_.HomingREV),
+                make_protocol_property("FoundPosition", &config_.FoundPosition)
             ),
             make_protocol_function("set_pos_setpoint", *this, &Controller::set_pos_setpoint,
                 "pos_setpoint", "vel_feed_forward", "current_feed_forward"),
@@ -141,7 +152,8 @@ public:
 
             make_protocol_function("start_anticogging_calibration", *this, &Controller::start_anticogging_calibration),
             make_protocol_function("home_axis", *this, &Controller::home_axis),
-            make_protocol_function("drive_up", *this, &Controller::drive_up)
+            make_protocol_function("drive_up", *this, &Controller::drive_up),
+            make_protocol_function("find_position", *this, &Controller::find_position)
 
         );
     }

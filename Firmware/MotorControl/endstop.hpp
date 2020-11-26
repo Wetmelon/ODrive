@@ -6,7 +6,8 @@ class Endstop {
 
     //#define ENDSTOP_BEHAVIOUR_UNDEFINED 0
     #define ENDSTOP_BEHAVIOUR_DRIVE_UP 1
-    //#define ENDSTOP_BEHAVIOUR_DOERROR 2
+    #define ENDSTOP_BEHAVIOUR_ROTATIONAL 2
+    //#define ENDSTOP_BEHAVIOUR_DOERROR 3
 
     struct Config_t {
         uint16_t gpio_num;

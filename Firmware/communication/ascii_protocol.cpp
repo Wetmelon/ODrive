@@ -260,6 +260,20 @@ void ASCII_protocol_process_line(const uint8_t* buffer, size_t len, StreamSink& 
                 axis->watchdog_feed();
             }   
         } 
+        if(cmd[1] == 'p') // find position
+        {
+            unsigned motor_number;
+            int numscan = sscanf(cmd, "xp %u", &motor_number);
+            if (numscan < 1) {
+                respond(response_channel, use_checksum, "invalid command format");
+            } else if (motor_number >= AXIS_COUNT) {
+                respond(response_channel, use_checksum, "invalid motor %u", motor_number);
+            } else {
+                Axis* axis = axes[motor_number];
+                axis->controller_.find_position();
+                axis->watchdog_feed();
+            }   
+        } 
     } 
 
     else if (cmd[0] == 'r') { // read property

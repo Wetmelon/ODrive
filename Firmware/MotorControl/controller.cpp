@@ -87,6 +87,16 @@ bool Controller::home_axis() {
     return true;
 }
 
+bool Controller::find_position() {
+    if (axis_->max_endstop_.config_.enabled) {
+        set_vel_setpoint(-config_.homing_speed, 0.0f);
+        axis_->homing_state_ = HOMING_STATE_FIND_POSITION;
+    } else {
+        return false;
+    }
+    return true;
+}
+
 bool Controller::drive_up() 
 {
     EndswitchState = ES_STATE_MOVE_UP;

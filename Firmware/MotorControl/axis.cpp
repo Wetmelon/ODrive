@@ -308,20 +308,84 @@ bool Axis::run_closed_loop_control_loop() {
             return false; // set_error should update axis.error_
 
         // Handle the homing case
-        if (homing_state_ == HOMING_STATE_HOMING) {
+        if (homing_state_ == HOMING_STATE_HOMING) 
+        {
             if (min_endstop_.getEndstopState()) {
+
+                
+                /*{
+                    controller_.config_.HomingFWD = encoder_.pos_estimate_;
+                    controller_.set_vel_setpoint(controller_.config_.homing_speed, 0.0f);
+                    homing_state_ = HOMING_STATE_HOMING_REVERSE;
+                }
+                else */
+                
                 encoder_.set_linear_count(min_endstop_.config_.offset);
-                controller_.set_pos_setpoint(0.0f, 0.0f, 0.0f);
+                if (controller_.config_.HomingBothDirections) controller_.set_pos_setpoint(50000.0f, 0.0f, 0.0f);
+                else controller_.set_pos_setpoint(0.0f, 0.0f, 0.0f);
                 homing_state_ = HOMING_STATE_MOVE_TO_ZERO;
+                
             }
-        } else if (homing_state_ == HOMING_STATE_MOVE_TO_ZERO) {
-            if(!min_endstop_.getEndstopState()){
+        }
+        else if (homing_state_ == HOMING_STATE_HOMING_REVERSE) 
+        {
+            /*if(!min_endstop_.getEndstopState()){
+                controller_.config_.Homing_Endswitch_Released = true;
+            }
+            else if (controller_.config_.Homing_Endswitch_Released) {
+            controller_.config_.HomingREV = encoder_.pos_estimate_;
+            int32_t Homing_Pos_Average = ((controller_.config_.HomingREV - controller_.config_.HomingFWD) / 2);
+            encoder_.set_linear_count(Homing_Pos_Average);
+            controller_.set_pos_setpoint(0.0f, 0.0f, 0.0f);
+            controller_.config_.Homing_Endswitch_Released = false;*/
+
+            if (min_endstop_.getEndstopState()) 
+            {
+                int32_t Homing_Pos_Average = encoder_.pos_estimate_/2.0;
+                encoder_.set_linear_count(Homing_Pos_Average);
+                controller_.set_pos_setpoint(0.0f, 0.0f, 0.0f);
                 homing_state_ = HOMING_STATE_IDLE;
             }
-        } else {
+            
+        }
+        else if (homing_state_ == HOMING_STATE_FIND_POSITION) 
+        {
+            if (max_endstop_.getEndstopState()) 
+            {
+                controller_.config_.FoundPosition = encoder_.pos_estimate_;
+                homing_state_ = HOMING_STATE_FIND_POSITION_MOVE_FORWARD;
+            }
+        } 
+        else if (homing_state_ == HOMING_STATE_FIND_POSITION_MOVE_FORWARD) 
+        {
+            if (!max_endstop_.getEndstopState()) 
+            {
+                controller_.set_vel_setpoint(0.0f, 0.0f);
+                homing_state_ = HOMING_STATE_IDLE;
+            }
+        } 
+        else if (homing_state_ == HOMING_STATE_MOVE_TO_ZERO) 
+        {
+            if(!min_endstop_.getEndstopState()){
+                if (controller_.config_.HomingBothDirections) 
+                {
+                    controller_.set_vel_setpoint(controller_.config_.homing_speed, 0.0f);
+                    homing_state_ = HOMING_STATE_HOMING_REVERSE;
+                }
+                else homing_state_ = HOMING_STATE_IDLE;
+            }
+        } 
+        else {
             // Check for endstop presses
             if (min_endstop_.config_.enabled && min_endstop_.getEndstopState()) {
-                return error_ |= ERROR_MIN_ENDSTOP_PRESSED, false;
+                if (max_endstop_.config_.behaviour == ENDSTOP_BEHAVIOUR_ROTATIONAL)
+                {
+                    // do nothing
+                }
+                else
+                {
+                    return error_ |= ERROR_MIN_ENDSTOP_PRESSED, false;
+                }
             } else if (max_endstop_.config_.enabled && max_endstop_.getEndstopState()) {
                 //return error_ |= ERROR_MAX_ENDSTOP_PRESSED, false; // KMART TODO: Add Logic to stop movement instead of error (e.g. pos_setpoint_ = axis_->encoder_.pos_cpr_)
                 if (max_endstop_.config_.behaviour == ENDSTOP_BEHAVIOUR_DRIVE_UP)
@@ -332,12 +396,16 @@ bool Axis::run_closed_loop_control_loop() {
                         controller_.pos_setpoint_ = encoder_.pos_estimate_;
                     }
                 }
+                else if (max_endstop_.config_.behaviour == ENDSTOP_BEHAVIOUR_ROTATIONAL)
+                {
+                    // do nothing
+                }
                 else
                 {
                     return error_ |= ERROR_MAX_ENDSTOP_PRESSED, false;
                 }
             }
-            else if ((abs(controller_.pos_setpoint_ - encoder_.pos_estimate_) < 50) && (controller_.EndswitchState == controller_.ES_STATE_MOVE_UP)) 
+            else if ((fabs(controller_.pos_setpoint_ - encoder_.pos_estimate_) < 50) && (controller_.EndswitchState == controller_.ES_STATE_MOVE_UP)) 
             { // limit of storage reached -> empty
                 controller_.EndswitchState = controller_.ES_STATE_LIMIT_REACHED;
             }
